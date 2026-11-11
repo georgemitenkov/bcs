@@ -3,6 +3,7 @@
 
 // For some reason deriving `Arbitrary` results in clippy firing a `unit_arg` violation
 #![allow(clippy::unit_arg)]
+#![allow(non_local_definitions)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -467,13 +468,13 @@ fn cow() {
 
     #[derive(Serialize, Deserialize, Debug)]
     enum Message<'a> {
-        M1(Cow<'a, Vec<u32>>),
+        M1(Cow<'a, [u32]>),
         M2(Cow<'a, BTreeMap<u32, u32>>),
     }
 
     // M1
     {
-        let serialized = to_bytes(&Message::M1(Cow::Borrowed(&large_object))).unwrap();
+        let serialized = to_bytes(&Message::M1(Cow::Borrowed(&large_object[..]))).unwrap();
         let deserialized: Message<'static> = from_bytes(&serialized).unwrap();
 
         match deserialized {
@@ -500,7 +501,7 @@ fn strbox() {
 
     let strx: &'static str = "hello world";
     let serialized = to_bytes(&Cow::Borrowed(strx)).unwrap();
-    let deserialized: Cow<'static, String> = from_bytes(&serialized).unwrap();
+    let deserialized: Cow<'static, str> = from_bytes(&serialized).unwrap();
     let stringx: String = deserialized.into_owned();
     assert_eq!(strx, stringx);
 }
@@ -511,7 +512,7 @@ fn slicebox() {
 
     let slice = [1u32, 2, 3, 4, 5];
     let serialized = to_bytes(&Cow::Borrowed(&slice[..])).unwrap();
-    let deserialized: Cow<'static, Vec<u32>> = from_bytes(&serialized).unwrap();
+    let deserialized: Cow<'static, [u32]> = from_bytes(&serialized).unwrap();
     {
         let sb: &[u32] = &deserialized;
         assert_eq!(slice, sb);
@@ -565,7 +566,7 @@ fn serde_known_vector() {
     map.insert(vec![20, 21, 89, 105], vec![201, 23, 90]);
 
     let f = Foo {
-        a: u64::max_value(),
+        a: u64::MAX,
         b: vec![100, 99, 88, 77, 66, 55],
         c: b,
         d: true,
